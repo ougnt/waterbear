@@ -7,7 +7,7 @@ import "../node_modules/@pancakeswap/pancake-swap-lib/contracts/math/SafeMath.so
 
 abstract contract BUSD is BEP20 {}
 
-contract WalrusCoin is BEP20 {
+abstract contract WalrusCoin is BEP20 {
   uint256 private _busdFx;
   uint256 private _lastUpdate;
   uint256 private _counter;
@@ -23,6 +23,13 @@ contract WalrusCoin is BEP20 {
     _busdSC = BUSD(_busdAddr);
     _lastUpdate = block.timestamp;
     _counter = 0;
+  }
+
+  function updateExchangeRate(uint256 rate, address updater) public onlyOwner returns(bool success) {
+    require(block.timestamp.sub(_lastUpdate) >= 300, "Cannot update too frequence");
+    _busdFx = rate;
+    // TODO : Pay some reward to the updater
+    return true;
   }
 
   function mintFromBUSD(uint256 _busdCollateral) public returns(bool success) {
@@ -65,7 +72,7 @@ contract WalrusCoin is BEP20 {
     return _busdShelf[msg.sender];
   }
 
-  function getBook(uint256 bookId) public returns(uint256[] memory) {
+  function getBook(uint256 bookId) public view returns(uint256[] memory) {
     
     return _busdBook[msg.sender][bookId];
   }

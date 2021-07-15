@@ -240,4 +240,12 @@ contract("WTHB - Should be able to mint and redeem (happy case)", function ( acc
   it("show error when mint more than allowance", async function() {
     await Exceptions.tryCatch(wthbsc.mintFromBUSD(801, {from: accounts[0]}), 'revert BEP20: transfer amount exceeds allowance -- Reason given: BEP20: transfer amount exceeds allowance.');
   })
+
+  it("should error when none owner try to update the exchange rate", async function() {
+    assert.fail("not implement");
+  })
+
+  it("should block when the rate is updated too frequence", async function() {
+    assert.fail("not implement");
+  })
 });
