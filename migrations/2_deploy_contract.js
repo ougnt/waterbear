@@ -1,5 +1,4 @@
 var WThb = artifacts.require('./WTHB.sol')
-var Modifier = artifacts.require('./Modifiers.sol')
 var FakeBUSD = artifacts.require('./fake/FakeBUSD.sol')
 
 module.exports = function(deployer, network) {

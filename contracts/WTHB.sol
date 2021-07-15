@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.2 <0.9.0;
 
-import "./Modifiers.sol";
 import "../node_modules/@pancakeswap/pancake-swap-lib/contracts/token/BEP20/BEP20.sol";
 import "../node_modules/@pancakeswap/pancake-swap-lib/contracts/math/SafeMath.sol";
 
 abstract contract BUSD is BEP20 {
 }
 
-contract WTHB is Modifiers, BEP20 {
+contract WTHB is BEP20 {
 
   address private _busdAddress;
   BUSD private _busdSC;
