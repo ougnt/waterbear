@@ -4,32 +4,40 @@ pragma solidity >=0.4.22 <0.9.0;
 import "../node_modules/@pancakeswap/pancake-swap-lib/contracts/token/BEP20/BEP20.sol";
 import "../node_modules/@pancakeswap/pancake-swap-lib/contracts/math/SafeMath.sol";
 
-
 abstract contract BUSD is BEP20 {}
 
 abstract contract WalrusCoin is BEP20 {
   uint256 private _busdFx;
-  uint256 private _lastUpdate;
+  uint256 private _lastUpdateBlock;
   uint256 private _counter;
   BUSD private _busdSC;
+  address public coreAddr;
   mapping(address => mapping(uint256 => uint256[])) private _busdBook;
   mapping(address => uint256[]) private _busdShelf;
   
   event MintFromBUSD(address minter, uint256 bookId, uint256 amount);
 
-  constructor(string memory _name, string memory _symbol, uint256 busdFx, address _busdAddr) 
+  constructor(string memory _name, string memory _symbol, uint256 busdFx, address _busdAddr, address _coreAddr) 
   BEP20(_name, _symbol) public {
     _busdFx = busdFx;
     _busdSC = BUSD(_busdAddr);
-    _lastUpdate = block.timestamp;
+    _lastUpdateBlock = block.number;
     _counter = 0;
+    coreAddr = _coreAddr;
   }
 
-  function updateExchangeRate(uint256 rate, address updater) public onlyOwner returns(bool success) {
-    require(block.timestamp.sub(_lastUpdate) >= 300, "Cannot update too frequence");
-    _busdFx = rate;
-    // TODO : Pay some reward to the updater
+  function walrus() public pure returns(bool success) {
     return true;
+  }
+
+  function updateExchangeRate(uint256 rate, address updater) public returns(bool success) {
+    require(msg.sender == coreAddr, "WalrusCoin: Only the core contract can call this function.");
+    _busdFx = rate;
+    return true;
+  }
+
+  function exchangeRate() public view returns(uint256 rate) {
+    rate = _busdFx;
   }
 
   function mintFromBUSD(uint256 _busdCollateral) public returns(bool success) {

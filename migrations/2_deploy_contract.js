@@ -1,13 +1,20 @@
 var WThb = artifacts.require('./WTHB.sol')
 var FakeBUSD = artifacts.require('./fake/FakeBUSD.sol')
 var WalrusCore = artifacts.require("WalrusCore.sol");
+var Fang = artifacts.require("./Fang.sol")
 
 module.exports = function(deployer, network) {
   // Use deployer to state migration tasks.
-  deployer.deploy(WalrusCore);
+  var coreAddr;
+  var fangAddr;
+  deployer.deploy(Fang).then( fangsc => {
+    fangAddr = fangsc.address
+    deployer.deploy(WalrusCore, fangAddr).then( core => coreAddr = core.address);
+  });
+  
 
   if(network == 'development') {
-    deployer.deploy(FakeBUSD).then(inst => deployer.deploy(WThb, inst.address));
+    deployer.deploy(FakeBUSD).then(busd => deployer.deploy(WThb, '32000000000000000000', busd.address, coreAddr));
     
   } else if (network == 'testnet') {
     deployer.deploy(WThb, '0xeD24FC36d5Ee211Ea25A80239Fb8C4Cfd80f12Ee');    

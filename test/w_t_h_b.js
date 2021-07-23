@@ -241,11 +241,28 @@ contract("WTHB - Should be able to mint and redeem (happy case)", function ( acc
     await Exceptions.tryCatch(wthbsc.mintFromBUSD(801, {from: accounts[0]}), 'revert BEP20: transfer amount exceeds allowance -- Reason given: BEP20: transfer amount exceeds allowance.');
   })
 
-  it("should error when none owner try to update the exchange rate", async function() {
-    assert.fail("not implement");
+  it("should error when update the exchange rate from someone not core contract", async function() {
+    await Exceptions.tryCatch(wthbsc.updateExchangeRate('31000000000000000000', accounts[3], {from:accounts[1]}), 'revert WalrusCoin: Only the core contract can call this function.')
   })
+});
 
-  it("should block when the rate is updated too frequence", async function() {
-    assert.fail("not implement");
+contract("WTHB - Should be able to update exchange rate", function ( accounts ) {
+  let wthbsc;
+  let wthbaddr;
+  let busdsc;
+  it('should be able to deploy contracts', async function() {
+    await WTHB.deployed().then( inst => {
+      wthbsc = inst
+      wthbaddr = inst.address;
+    });
+    await FakeBUSD.deployed().then( inst => busdsc = inst);
+    await wthbsc.balanceOf.call(accounts[0]).then( bal => assert.equal(bal, 0))
+    await busdsc.balanceOf.call(accounts[0]).then( bal => assert.equal(bal, 0))
+
+    if(NETWORK === 'development') {
+      await busdsc.mint(1000, {from: accounts[0]})
+    }
+    await busdsc.balanceOf.call(accounts[0]).then( bal => assert.equal(bal, 1000))
+    await busdsc.approve(wthbaddr, '800', {from:accounts[0]});
   })
 });
