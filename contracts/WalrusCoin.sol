@@ -8,12 +8,13 @@ abstract contract BUSD is BEP20 {}
 
 abstract contract WalrusCoin is BEP20 {
   uint256 private _busdFx;
-  uint256 private _lastUpdateBlock;
   uint256 private _counter;
   BUSD private _busdSC;
-  address public coreAddr;
   mapping(address => mapping(uint256 => uint256[])) private _busdBook;
   mapping(address => uint256[]) private _busdShelf;
+
+  address public coreAddr;
+  uint256 public lastUpdateBlock;
   
   event MintFromBUSD(address minter, uint256 bookId, uint256 amount);
 
@@ -21,7 +22,7 @@ abstract contract WalrusCoin is BEP20 {
   BEP20(_name, _symbol) public {
     _busdFx = busdFx;
     _busdSC = BUSD(_busdAddr);
-    _lastUpdateBlock = block.number;
+    lastUpdateBlock = block.number;
     _counter = 0;
     coreAddr = _coreAddr;
   }
@@ -30,9 +31,10 @@ abstract contract WalrusCoin is BEP20 {
     return true;
   }
 
-  function updateExchangeRate(uint256 rate, address updater) public returns(bool success) {
+  function updateExchangeRate(uint256 rate) public returns(bool success) {
     require(msg.sender == coreAddr, "WalrusCoin: Only the core contract can call this function.");
     _busdFx = rate;
+    lastUpdateBlock = block.number;
     return true;
   }
 

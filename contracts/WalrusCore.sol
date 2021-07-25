@@ -2,23 +2,35 @@
 pragma solidity >=0.4.22 <0.9.0;
 
 import "./WalrusCoin.sol";
+import "./WalrusReward.sol";
 import "../node_modules/@pancakeswap/pancake-swap-lib/contracts/access/Ownable.sol";
+import "../node_modules/@pancakeswap/pancake-swap-lib/contracts/math/SafeMath.sol";
 
 contract WalrusCore is Ownable {
-  address private _fang;
-  address[] private _availableCoinsAddrs;
-  
-  event UpdateExchangeRateEvent(address coinAddr, uint256 rate);
+  using SafeMath for uint256;
 
-  constructor(address fangAddr) public {
+  address[] private _availableCoinsAddrs;
+  mapping(address => uint256) public _rewardAllo;
+  uint256 private _rewardPerBlock;
+  uint256 private _totalAllocation;
+  
+  event RewardDistribute(address to, uint256 amount);
+
+  constructor() public {
+    _rewardPerBlock = 1000000000000000000;
+    _totalAllocation = 0;
   }
 
-  function addCoin(address _address) public onlyOwner returns(bool success) {
+  function addCoin(address _address, uint256 rewardAllo) public onlyOwner returns(bool success) {
     WalrusCoin _coin = WalrusCoin(_address);
     require(_coin.walrus(), "Walrus: Not support coin");
     _availableCoinsAddrs.push(_address);
+    _rewardAllo[_address] = rewardAllo;
+    _totalAllocation += rewardAllo;
     return true;
   }
+
+  // TODO : Update rewardAllo
 
   function getCoins() public view returns(address[] memory) {
     return _availableCoinsAddrs;
@@ -28,9 +40,27 @@ contract WalrusCore is Ownable {
     return WalrusCoin(coinAddr).exchangeRate();
   }
 
-  function updateExchangeRate(address coinAddr, uint256 rate) public onlyOwner returns(bool success) {
-    emit UpdateExchangeRateEvent(coinAddr, rate);
-    WalrusCoin(coinAddr).updateExchangeRate(rate, msg.sender);  
+  function updateExchangeRate(address coinAddr, uint256 rate, address walrusRewardAddr) public onlyOwner returns(bool success) {
+    WalrusCoin(coinAddr).updateExchangeRate(rate);
+    uint256 rewardAmount = pendingReward(coinAddr);
+
+    WalrusReward reward = WalrusReward(walrusRewardAddr);
+    reward.walrus();
+    WalrusReward(walrusRewardAddr).distributeReward(msg.sender, rewardAmount);
+
+    emit RewardDistribute(msg.sender, rewardAmount);
+
     return true;
+  }
+
+  function getMultiplier(uint256 _from, uint256 _to) private view returns (uint256) {
+    return _to.sub(_from);
+  }
+
+  function pendingReward(address coinAddr) public view returns(uint256 fangReward) {
+    WalrusCoin coin = WalrusCoin(coinAddr);
+    uint256 multiplier = getMultiplier(coin.lastUpdateBlock(), block.number);
+    uint256 rewardAllocation = _rewardAllo[coinAddr];
+    fangReward = _rewardPerBlock.mul(multiplier).mul(rewardAllocation).div(_totalAllocation);
   }
 }

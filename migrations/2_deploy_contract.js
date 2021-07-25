@@ -7,11 +7,11 @@ module.exports = function(deployer, network) {
   // Use deployer to state migration tasks.
   var coreAddr;
   var fangAddr;
-  deployer.deploy(Fang).then( fangsc => {
-    fangAddr = fangsc.address
-    deployer.deploy(WalrusCore, fangAddr).then( core => coreAddr = core.address);
+    
+  deployer.deploy(WalrusCore).then( core => {
+    coreAddr = core.address
+    deployer.deploy(Fang, coreAddr).then( fang => fangAddr = fang.address);
   });
-  
 
   if(network == 'development') {
     deployer.deploy(FakeBUSD).then(busd => deployer.deploy(WThb, '32000000000000000000', busd.address, coreAddr));

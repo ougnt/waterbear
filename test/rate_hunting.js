@@ -32,11 +32,11 @@ contract("Walrus", function (accounts) {
   });
 
   it("should allow only owner to add walrus coin", async function(){
-    await Exceptions.tryCatch(walrus.addCoin(wthb.address, {from: accounts[1]}), 'revert Ownable: caller is not the owner -- Reason given: Ownable: caller is not the owner.');
+    await Exceptions.tryCatch(walrus.addCoin(wthb.address, 1, {from: accounts[1]}), 'revert Ownable: caller is not the owner -- Reason given: Ownable: caller is not the owner.');
   })
 
   it("should be able to add Walrus Coin to the system", async function() {
-    await walrus.addCoin(wthb.address, {from: accounts[0]})
+    await walrus.addCoin(wthb.address, 1, {from: accounts[0]})
     
     coins = await walrus.getCoins.call({from: accounts[1]})
     assert.equal(coins.length, 1)
@@ -44,11 +44,11 @@ contract("Walrus", function (accounts) {
   })
 
   it("should not be able to add none Walrus Coin to the system", async function() {
-    await Exceptions.tryCatch(walrus.addCoin(busd.address, {from: accounts[0]}), 'revert');
+    await Exceptions.tryCatch(walrus.addCoin(busd.address, 1, {from: accounts[0]}), 'revert');
   })
 
   it("can update the exchange rate of its coin", async function() {
-    await walrus.updateExchangeRate(coins[0], '33000000000000000000', {from: accounts[0]})
+    await walrus.updateExchangeRate(coins[0], '33000000000000000000', fang.address, {from: accounts[0]})
     await walrus.getExchangeRate.call(coins[0], {from: accounts[0]}).then( fx => assert.equal(fx, '33000000000000000000'))
     await wthb.exchangeRate.call({from: accounts[2]}).then( fx => assert.equal(fx, '33000000000000000000'))
     // TODO : Check that Fang is distributed
