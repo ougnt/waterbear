@@ -40,15 +40,16 @@ contract WalrusCore is Ownable {
     return WalrusCoin(coinAddr).exchangeRate();
   }
 
-  function updateExchangeRate(address coinAddr, uint256 rate, address walrusRewardAddr) public onlyOwner returns(bool success) {
-    WalrusCoin(coinAddr).updateExchangeRate(rate);
+  function updateExchangeRate(address coinAddr, uint256 rate, address walrusRewardAddr, address updater) public onlyOwner returns(bool success) {
+    
     uint256 rewardAmount = pendingReward(coinAddr);
+    WalrusCoin(coinAddr).updateExchangeRate(rate);
 
     WalrusReward reward = WalrusReward(walrusRewardAddr);
     reward.walrus();
-    WalrusReward(walrusRewardAddr).distributeReward(msg.sender, rewardAmount);
+    WalrusReward(walrusRewardAddr).distributeReward(updater, rewardAmount);
 
-    emit RewardDistribute(msg.sender, rewardAmount);
+    emit RewardDistribute(updater, rewardAmount);
 
     return true;
   }
