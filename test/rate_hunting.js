@@ -1,5 +1,7 @@
 const Exceptions = require('./exceptions.js');
+const TimeHelper = require('./TimeHelper.js')
 const WTHB = artifacts.require("WTHB");
+const WJPY = artifacts.require("WJPY");
 const WalrusCore = artifacts.require("WalrusCore");
 const Fang = artifacts.require("Fang");
 let NETWORK = process.env.NETWORK;
@@ -17,6 +19,7 @@ contract("Walrus", function (accounts) {
 
   let walrus;
   let wthb;
+  let wjpy;
   let fang;
   let busd;
   let coins;
@@ -25,6 +28,7 @@ contract("Walrus", function (accounts) {
     await Fang.deployed().then(fangInst => fang = fangInst);
     await WalrusCore.deployed().then(inst => walrus = inst);
     await WTHB.deployed().then(inst => wthb = inst);
+    await WJPY.deployed().then(inst => wjpy = inst);
     await FakeBUSD.deployed().then(inst => busd = inst);
     assert.equal(await fang.balanceOf.call(accounts[0]).valueOf(), 0)
     assert.equal(await fang.balanceOf.call(accounts[1]).valueOf(), 0)
@@ -32,11 +36,11 @@ contract("Walrus", function (accounts) {
   });
 
   it("should allow only owner to add walrus coin", async function(){
-    await Exceptions.tryCatch(walrus.addCoin(wthb.address, {from: accounts[1]}), 'revert Ownable: caller is not the owner -- Reason given: Ownable: caller is not the owner.');
+    await Exceptions.tryCatch(walrus.addCoin(wthb.address, 1, {from: accounts[1]}), 'revert Ownable: caller is not the owner -- Reason given: Ownable: caller is not the owner.');
   })
 
   it("should be able to add Walrus Coin to the system", async function() {
-    await walrus.addCoin(wthb.address, {from: accounts[0]})
+    await walrus.addCoin(wthb.address, 1, {from: accounts[0]})
     
     coins = await walrus.getCoins.call({from: accounts[1]})
     assert.equal(coins.length, 1)
@@ -44,13 +48,34 @@ contract("Walrus", function (accounts) {
   })
 
   it("should not be able to add none Walrus Coin to the system", async function() {
-    await Exceptions.tryCatch(walrus.addCoin(busd.address, {from: accounts[0]}), 'revert');
+    await Exceptions.tryCatch(walrus.addCoin(busd.address, 1, {from: accounts[0]}), 'revert');
   })
 
-  it("can update the exchange rate of its coin", async function() {
-    await walrus.updateExchangeRate(coins[0], '33000000000000000000', {from: accounts[0]})
+  it("can update the exchange rate of its coin and get reward", async function() {
+    await fang.balanceOf(accounts[5]).then(bal => assert.equal(bal, 0))
+    
+    let after;
+    let before;
+
+    await wthb.lastUpdateBlock.call().then(num => {before = num.toNumber()})
+    await TimeHelper.advanceBlock();
+    await web3.eth.getBlockNumber((er, re) => {after = re})
+    let expectedReward = new web3.utils.BN((after - before ) + '000000000000000000')
+    await walrus.pendingReward.call(coins[0], {from: accounts[5]}).then( pending => assert.equal( expectedReward.toString(), pending.toString()))
+    await walrus.updateExchangeRate(coins[0], '33000000000000000000', fang.address, accounts[5], {from: accounts[0]})
     await walrus.getExchangeRate.call(coins[0], {from: accounts[0]}).then( fx => assert.equal(fx, '33000000000000000000'))
     await wthb.exchangeRate.call({from: accounts[2]}).then( fx => assert.equal(fx, '33000000000000000000'))
-    // TODO : Check that Fang is distributed
+    await web3.eth.getBlockNumber((er, re) => after = re)
+    expectedReward = new web3.utils.BN((after - before ) + '000000000000000000')
+    await fang.balanceOf(accounts[5]).then(bal => assert.equal(bal, expectedReward.toString()))
+  })
+
+  it("should be able to add another Walrus Coin to the system", async function() {
+    await walrus.addCoin(wjpy.address, 1, {from: accounts[0]})
+    
+    coins = await walrus.getCoins.call({from: accounts[1]})
+    assert.equal(coins.length, 2)
+    assert.equal(coins[0], wthb.address)
+    assert.equal(coins[1], wjpy.address)
   })
 });

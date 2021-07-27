@@ -242,7 +242,7 @@ contract("WTHB - Should be able to mint and redeem (happy case)", function ( acc
   })
 
   it("should error when update the exchange rate from someone not core contract", async function() {
-    await Exceptions.tryCatch(wthbsc.updateExchangeRate('31000000000000000000', accounts[3], {from:accounts[1]}), 'revert WalrusCoin: Only the core contract can call this function.')
+    await Exceptions.tryCatch(wthbsc.updateExchangeRate('31000000000000000000',   {from:accounts[1]}), 'revert WalrusCoin: Only the core contract can call this function.')
   })
 });
 
