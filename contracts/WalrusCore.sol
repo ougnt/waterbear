@@ -10,27 +10,32 @@ contract WalrusCore is Ownable {
   using SafeMath for uint256;
 
   address[] private _availableCoinsAddrs;
-  mapping(address => uint256) public _rewardAllo;
-  uint256 private _rewardPerBlock;
-  uint256 private _totalAllocation;
+  mapping(address => uint256) public rewardAllo;
+  uint256 public rewardPerBlock;
+  uint256 public totalAllocation;
   
   event RewardDistribute(address to, uint256 amount);
 
   constructor() public {
-    _rewardPerBlock = 1000000000000000000;
-    _totalAllocation = 0;
+    rewardPerBlock = 1000000000000000000;
+    totalAllocation = 0;
   }
 
-  function addCoin(address _address, uint256 rewardAllo) public onlyOwner returns(bool success) {
+  function addCoin(address _address, uint256 _rewardAllo) public onlyOwner returns(bool success) {
     WalrusCoin _coin = WalrusCoin(_address);
     require(_coin.walrus(), "Walrus: Not support coin");
     _availableCoinsAddrs.push(_address);
-    _rewardAllo[_address] = rewardAllo;
-    _totalAllocation += rewardAllo;
+    rewardAllo[_address] = _rewardAllo;
+    totalAllocation += _rewardAllo;
     return true;
   }
 
-  // TODO : Update rewardAllo
+  function updateRewardAllocation(address coinAddress, uint256 newAllocation) public onlyOwner returns(bool success) {
+    totalAllocation -= rewardAllo[coinAddress];
+    totalAllocation += newAllocation;
+    rewardAllo[coinAddress] = newAllocation;
+    return true;
+  }
 
   function getCoins() public view returns(address[] memory) {
     return _availableCoinsAddrs;
@@ -61,7 +66,7 @@ contract WalrusCore is Ownable {
   function pendingReward(address coinAddr) public view returns(uint256 fangReward) {
     WalrusCoin coin = WalrusCoin(coinAddr);
     uint256 multiplier = getMultiplier(coin.lastUpdateBlock(), block.number);
-    uint256 rewardAllocation = _rewardAllo[coinAddr];
-    fangReward = _rewardPerBlock.mul(multiplier).mul(rewardAllocation).div(_totalAllocation);
+    uint256 rewardAllocation = rewardAllo[coinAddr];
+    fangReward = rewardPerBlock.mul(multiplier).mul(rewardAllocation).div(totalAllocation);
   }
 }
