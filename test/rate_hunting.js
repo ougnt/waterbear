@@ -68,6 +68,8 @@ contract("Walrus", function (accounts) {
     await web3.eth.getBlockNumber((er, re) => after = re)
     expectedReward = new web3.utils.BN((after - before ) + '000000000000000000')
     await fang.balanceOf(accounts[5]).then(bal => assert.equal(bal, expectedReward.toString()))
+
+    await walrus.pendingReward.call(coins[0], {from: accounts[5]}).then( pending => assert.equal( "0", pending.toString()))
   })
 
   it("should be able to add another Walrus Coin to the system", async function() {
@@ -77,5 +79,41 @@ contract("Walrus", function (accounts) {
     assert.equal(coins.length, 2)
     assert.equal(coins[0], wthb.address)
     assert.equal(coins[1], wjpy.address)
+  })
+
+  it("should allow only the account owner update the reward allocation", async function() {
+    await Exceptions.tryCatch(walrus.updateRewardAllocation(wthb.address, 2, {from: accounts[1]}), 'revert Ownable: caller is not the owner -- Reason given: Ownable: caller is not the owner.');
+  })
+  
+  it("should be able to update the reward distribution", async function() {
+    let wthbRate = await walrus.rewardAllo.call(wthb.address, {from: accounts[2]})
+    let wjpyRate = await walrus.rewardAllo.call(wjpy.address, {from: accounts[2]})
+    assert.equal(wthbRate, 1)
+    assert.equal(wjpyRate, 1)
+
+    await walrus.updateRewardAllocation(wthb.address, 3, {from: accounts[0]})
+    wthbRate = await walrus.rewardAllo.call(wthb.address, {from: accounts[2]})
+    wjpyRate = await walrus.rewardAllo.call(wjpy.address, {from: accounts[2]})
+    let totalAllocation = await walrus.totalAllocation.call({from:accounts[2]})
+    assert.equal(wthbRate, 3)
+    assert.equal(wjpyRate, 1)
+    assert.equal(totalAllocation, 4)
+  })
+
+  it("should divide the reward according to the reward allocation", async function() {
+    let after;
+    let before;
+
+    await wthb.lastUpdateBlock.call().then(num => {before = num.toNumber()})
+    await TimeHelper.advanceBlock();
+    await web3.eth.getBlockNumber((er, re) => {after = re})
+    let expectedReward = new web3.utils.BN((after - before) + '000000000000000000').mul(new web3.utils.BN(3)).div(new web3.utils.BN(4))
+    await walrus.pendingReward.call(coins[0], {from: accounts[6]}).then( pending => assert.equal( expectedReward.toString(), pending.toString()))
+    
+    await wjpy.lastUpdateBlock.call().then(num => {before = num.toNumber()})
+    await TimeHelper.advanceBlock();
+    await web3.eth.getBlockNumber((er, re) => {after = re})
+    expectedReward = new web3.utils.BN((after - before ) + '000000000000000000').div(new web3.utils.BN(4))
+    await walrus.pendingReward.call(coins[1], {from: accounts[6]}).then( pending => assert.equal( expectedReward.toString(), pending.toString()))
   })
 });
